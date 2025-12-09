@@ -4,10 +4,13 @@ from docx import Document
 import os
 
 app = Flask(__name__)
+
+# Vercel hanya mengizinkan tulis file di folder /tmp
 UPLOAD_FOLDER = '/tmp'
 
 @app.route('/api/convert', methods=['POST'])
 def convert_file():
+    # 1. Validasi File
     if 'file' not in request.files:
         return jsonify({"error": "No file uploaded"}), 400
     
@@ -15,35 +18,46 @@ def convert_file():
     if file.filename == '':
         return jsonify({"error": "No file selected"}), 400
 
+    # 2. Simpan file PDF sementara
     input_path = os.path.join(UPLOAD_FOLDER, file.filename)
-    output_filename = file.filename.replace('.pdf', '.docx')
+    # Ganti ekstensi jadi .docx
+    output_filename = os.path.splitext(file.filename)[0] + ".docx"
     output_path = os.path.join(UPLOAD_FOLDER, output_filename)
     
     file.save(input_path)
 
     try:
-        # --- LOGIKA BARU (Lebih Ringan) ---
-        # 1. Baca PDF
+        # --- PROSES KONVERSI (Versi Ringan) ---
+        # Baca PDF
         reader = PdfReader(input_path)
         
-        # 2. Buat Dokumen Word Baru
+        # Buat File Word Baru
         doc = Document()
+        doc.add_heading(f'Hasil Konversi: {file.filename}', 0)
         
-        # 3. Salin teks per halaman
+        # Ekstrak teks per halaman
+        text_found = False
         for page in reader.pages:
             text = page.extract_text()
             if text:
+                text_found = True
                 doc.add_paragraph(text)
-                doc.add_page_break() # Ganti halaman di Word
+                doc.add_page_break()
         
-        # 4. Simpan
-        doc.save(output_path)
-        # ----------------------------------
+        if not text_found:
+             doc.add_paragraph("[Sistem mendeteksi PDF ini berisi Gambar/Scan. Teks tidak dapat diekstrak dengan metode ringan.]")
 
+        # Simpan Word
+        doc.save(output_path)
+        
+        # 3. Kirim File ke User
         return send_file(output_path, as_attachment=True)
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
     
     finally:
-        if os.path.exists(input_path): os.remove(input_path)
+        # Bersihkan file sampah di /tmp
+        if os.path.exists(input_path):
+            os.remove(input_path)
+        # Output path akan dihapus sistem nanti, atau bisa dihapus manual setelah return (membutuhkan fungsi 'after_request')
