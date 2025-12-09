@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Layanan Konversi Dokumen Serverless</title>
+    <style>
+        body { font-family: sans-serif; max-width: 600px; margin: 50px auto; text-align: center; }
+        .container { border: 2px dashed #ccc; padding: 40px; border-radius: 10px; }
+        button { background-color: #0070f3; color: white; border: none; padding: 10px 20px; cursor: pointer; border-radius: 5px; margin-top: 20px;}
+        button:disabled { background-color: #ccc; }
+        #status { margin-top: 20px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <h1>Konversi PDF ke Word</h1>
+    <p>Powered by Serverless Function (Python)</p>
+
+    <div class="container">
+        <input type="file" id="fileInput" accept=".pdf">
+        <br>
+        <button onclick="uploadAndConvert()" id="convertBtn">Konversi Sekarang</button>
+    </div>
+
+    <div id="status"></div>
+
+    <script>
+        async function uploadAndConvert() {
+            const fileInput = document.getElementById('fileInput');
+            const status = document.getElementById('status');
+            const btn = document.getElementById('convertBtn');
+
+            if (fileInput.files.length === 0) {
+                alert("Pilih file dulu!");
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+
+            // Update UI
+            status.innerText = "Sedang memproses di Serverless Function...";
+            btn.disabled = true;
+
+            try {
+                // Panggil Backend Serverless
+                const response = await fetch('/api/convert', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (response.ok) {
+                    // Download file otomatis
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = fileInput.files[0].name.replace('.pdf', '.docx');
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                    status.innerText = "Selesai! File terdownload.";
+                } else {
+                    const err = await response.json();
+                    status.innerText = "Gagal: " + (err.error || "Server Error");
+                }
+            } catch (error) {
+                console.error(error);
+                status.innerText = "Terjadi kesalahan koneksi.";
+            } finally {
+                btn.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>
