@@ -3,27 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Layanan Konversi Dokumen Serverless</title>
-    <style>
-        body { font-family: sans-serif; max-width: 600px; margin: 50px auto; text-align: center; }
-        .container { border: 2px dashed #ccc; padding: 40px; border-radius: 10px; }
-        button { background-color: #0070f3; color: white; border: none; padding: 10px 20px; cursor: pointer; border-radius: 5px; margin-top: 20px;}
-        button:disabled { background-color: #ccc; }
-        #status { margin-top: 20px; font-weight: bold; }
-    </style>
+    <title>PDF to Word Converter</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-    <h1>Konversi PDF ke Word</h1>
-    <p>Powered by Serverless Function (Python)</p>
-
     <div class="container">
-        <input type="file" id="fileInput" accept=".pdf">
-        <br>
-        <button onclick="uploadAndConvert()" id="convertBtn">Konversi Sekarang</button>
-    </div>
+        <h1>Konversi Dokumen</h1>
+        <p class="subtitle">Ubah PDF ke Word menggunakan Serverless Python</p>
 
-    <div id="status"></div>
+        <div class="file-upload-wrapper">
+            <input type="file" id="fileInput" accept=".pdf" />
+        </div>
+
+        <button onclick="uploadAndConvert()" id="convertBtn" class="btn-primary">
+            Konversi Sekarang
+        </button>
+
+        <div id="status"></div>
+
+        <div class="footer">
+            Tugas Cloud Computing &bull; Vercel Serverless
+        </div>
+    </div>
 
     <script>
         async function uploadAndConvert() {
@@ -31,27 +33,29 @@
             const status = document.getElementById('status');
             const btn = document.getElementById('convertBtn');
 
+            // Validasi: Cek ada file atau tidak
             if (fileInput.files.length === 0) {
-                alert("Pilih file dulu!");
+                status.innerHTML = "<span class='error'>⚠ Harap pilih file PDF terlebih dahulu!</span>";
                 return;
             }
 
             const formData = new FormData();
             formData.append('file', fileInput.files[0]);
 
-            // Update UI
-            status.innerText = "Sedang memproses di Serverless Function...";
+            // Ubah tampilan tombol jadi Loading
             btn.disabled = true;
+            btn.innerHTML = '<div class="spinner"></div> Memproses...';
+            status.innerText = "";
 
             try {
-                // Panggil Backend Serverless
+                // Panggil Backend (API Python)
                 const response = await fetch('/api/convert', {
                     method: 'POST',
                     body: formData
                 });
 
                 if (response.ok) {
-                    // Download file otomatis
+                    // Proses Download
                     const blob = await response.blob();
                     const url = window.URL.createObjectURL(blob);
                     const a = document.createElement('a');
@@ -60,16 +64,21 @@
                     document.body.appendChild(a);
                     a.click();
                     a.remove();
-                    status.innerText = "Selesai! File terdownload.";
+                    
+                    status.innerHTML = "<span class='success'>✔ Berhasil! File terdownload otomatis.</span>";
                 } else {
                     const err = await response.json();
-                    status.innerText = "Gagal: " + (err.error || "Server Error");
+                    status.innerHTML = `<span class='error'>❌ Gagal: ${err.error || "Server Error"}</span>`;
                 }
             } catch (error) {
                 console.error(error);
-                status.innerText = "Terjadi kesalahan koneksi.";
+                status.innerHTML = "<span class='error'>❌ Terjadi kesalahan koneksi.</span>";
             } finally {
+                // Kembalikan tombol seperti semula
                 btn.disabled = false;
+                btn.innerText = "Konversi Sekarang";
+                // Reset input file (opsional)
+                fileInput.value = ""; 
             }
         }
     </script>
