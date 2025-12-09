@@ -1,5 +1,0 @@
-fastapi
-uvicorn
-python-docx
-PyPDF2
-fpdf
